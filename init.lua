@@ -174,29 +174,7 @@ vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, { desc = "Go to previous [D]
 vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { desc = "Go to next [D]iagnostic message" })
 vim.keymap.set("n", "<leader>e", vim.diagnostic.open_float, { desc = "Show diagnostic [E]rror messages" })
 vim.keymap.set("n", "<leader>q", vim.diagnostic.setloclist, { desc = "Open diagnostic [Q]uickfix list" })
---vim.keymap.set('n', '<leader>m', ':lua require("harpoon.mark").add_file()<CR>')
---vim.keymap.set('n', '<leader>pm', ':lua require("harpoon.ui").toggle_quick_menu()<CR>')
---vim.keymap.set('n', '<leader>1', ':lua require("harpoon.ui").nav_file(1)<CR>')
---vim.keymap.set('n', '<leader>2', ':lua require("harpoon.ui").nav_file(2)<CR>')
---vim.keymap.set('n', '<leader>3', ':lua require("harpoon.ui").nav_file(3)<CR>')
-vim.keymap.set("n", "<leader>m", function()
-	vim.cmd([[lua require("harpoon.mark").add_file()]])
-end)
-vim.keymap.set("n", "<leader>pm", function()
-	vim.cmd([[:lua require("harpoon.ui").toggle_quick_menu()]])
-end)
-vim.keymap.set("n", "<leader>1", function()
-	vim.cmd([[lua require("harpoon.ui").nav_file(1)]])
-end)
-vim.keymap.set("n", "<leader>2", function()
-	vim.cmd([[lua require("harpoon.ui").nav_file(2)]])
-end)
-vim.keymap.set("n", "<leader>3", function()
-	vim.cmd([[lua require("harpoon.ui").nav_file(3)]])
-end)
-vim.keymap.set("n", "<leader>4", function()
-	vim.cmd([[lua require("harpoon.ui").nav_file(4)]])
-end)
+
 --vim.keymap.set('n', '<leader>pb', vim.cmd.BlameToggle)
 vim.keymap.set("n", "<leader>pt", function()
 	vim.cmd([[Neotree float toggle reveal]])
@@ -208,6 +186,10 @@ end)
 vim.keymap.set("n", "<leader>pd", function()
 	vim.cmd([[DBUI]])
 end)
+
+vim.keymap.set("v", "<leader>a", "<Plug>(DBUI_ExecuteQuery)")
+vim.keymap.set("n", "<leader>e", "<Plug>(DBUI_EditBindParameters)")
+vim.keymap.set("n", "<leader>t", "<Plug>(DBUI_ToggleResultLayout)")
 
 --vim.keymap.set("v", "<leader>S", "<leader><enter>")
 --vim.keymap.set('i', '#{', '{<CR>}<Esc>O')
@@ -290,8 +272,106 @@ require("lazy").setup({
 
 	-- "gc" to comment visual regions/lines
 	{ "numToStr/Comment.nvim", opts = {} },
+	--{
+	--	"rest-nvim/rest.nvim",
+	--},
+	--
+	{
+		"jellydn/hurl.nvim",
+		dependencies = {
+			"MunifTanjim/nui.nvim",
+			"nvim-lua/plenary.nvim",
+			"nvim-treesitter/nvim-treesitter",
+		},
+		ft = "hurl",
+		opts = {
+			env_file = { ".env" },
+			-- Show debugging info
+			debug = true,
+			-- Show notification on run
+			show_notification = false,
+			-- Show response in popup or split
+			auto_close = false,
+			mode = "split",
+			-- Default formatter
+			formatters = {
+				json = { "jq" }, -- Make sure you have install jq in your system, e.g: brew install jq
+				html = {
+					"prettier", -- Make sure you have install prettier in your system, e.g: npm install -g prettier
+					"--parser",
+					"html",
+				},
+				xml = {
+					"tidy", -- Make sure you have installed tidy in your system, e.g: brew install tidy-html5
+					"-xml",
+					"-i",
+					"-q",
+				},
+			},
+			-- Default mappings for the response popup or split views
+			mappings = {
+				close = "q", -- Close the response popup or split view
+				next_panel = "<C-n>", -- Move to the next response popup window
+				prev_panel = "<C-p>", -- Move to the previous response popup window
+			},
+		},
+		keys = {
+			-- Run API request
+			{ "<leader>A", "<cmd>HurlRunner<CR>", desc = "Run All requests" },
+			{ "<leader>a", "<cmd>HurlRunnerAt<CR>", desc = "Run Api request" },
+			{ "<leader>te", "<cmd>HurlRunnerToEntry<CR>", desc = "Run Api request to entry" },
+			{ "<leader>tm", "<cmd>HurlToggleMode<CR>", desc = "Hurl Toggle Mode" },
+			{ "<leader>tv", "<cmd>HurlVerbose<CR>", desc = "Run Api in verbose mode" },
+			-- Run Hurl request in visual mode
+			{ "<leader>h", ":HurlRunner<CR>", desc = "Hurl Runner", mode = "v" },
+		},
+	},
+	{
+		"nvim-lualine/lualine.nvim",
+		dependencies = { "nvim-tree/nvim-web-devicons" },
+	},
+	{
+		"ThePrimeagen/harpoon",
+		branch = "harpoon2",
+		opts = {
+			menu = {
+				width = vim.api.nvim_win_get_width(0) - 4,
+			},
+			settings = {
+				save_on_toggle = true,
+			},
+		},
+		keys = function()
+			local keys = {
+				{
+					"<leader>m",
+					function()
+						require("harpoon"):list():add()
+					end,
+					desc = "Harpoon File",
+				},
+				{
+					"<leader>h",
+					function()
+						local harpoon = require("harpoon")
+						harpoon.ui:toggle_quick_menu(harpoon:list())
+					end,
+					desc = "Harpoon Quick Menu",
+				},
+			}
 
-	{ "ThePrimeagen/harpoon" },
+			for i = 1, 5 do
+				table.insert(keys, {
+					"<leader>" .. i,
+					function()
+						require("harpoon"):list():select(i)
+					end,
+					desc = "Harpoon to File " .. i,
+				})
+			end
+			return keys
+		end,
+	},
 	-- Here is a more advanced example where we pass configuration
 	-- options to `gitsigns.nvim`. This is equivalent to the following Lua:
 	--    require('gitsigns').setup({ ... })
@@ -344,28 +424,28 @@ require("lazy").setup({
 	-- after the plugin has been loaded:
 	--  config = function() ... end
 
-	{ -- Useful plugin to show you pending keybinds.
-		"folke/which-key.nvim",
-		event = "VimEnter", -- Sets the loading event to 'VimEnter'
-		config = function() -- This is the function that runs, AFTER loading
-			require("which-key").setup()
+	--{ -- Useful plugin to show you pending keybinds.
+	--	"folke/which-key.nvim",
+	--	event = "VimEnter", -- Sets the loading event to 'VimEnter'
+	--	config = function() -- This is the function that runs, AFTER loading
+	--		require("which-key").setup()
 
-			-- Document existing key chains
-			require("which-key").register({
-				["<leader>c"] = { name = "[C]ode", _ = "which_key_ignore" },
-				["<leader>d"] = { name = "[D]ocument", _ = "which_key_ignore" },
-				["<leader>r"] = { name = "[R]ename", _ = "which_key_ignore" },
-				["<leader>s"] = { name = "[S]earch", _ = "which_key_ignore" },
-				["<leader>w"] = { name = "[W]orkspace", _ = "which_key_ignore" },
-				["<leader>t"] = { name = "[T]oggle", _ = "which_key_ignore" },
-				["<leader>h"] = { name = "Git [H]unk", _ = "which_key_ignore" },
-			})
-			-- visual mode
-			require("which-key").register({
-				["<leader>h"] = { "Git [H]unk" },
-			}, { mode = "v" })
-		end,
-	},
+	--		-- Document existing key chains
+	--		require("which-key").add({
+	--			["<leader>c"] = { name = "[C]ode", _ = "which_key_ignore" },
+	--			["<leader>d"] = { name = "[D]ocument", _ = "which_key_ignore" },
+	--			["<leader>r"] = { name = "[R]ename", _ = "which_key_ignore" },
+	--			["<leader>s"] = { name = "[S]earch", _ = "which_key_ignore" },
+	--			["<leader>w"] = { name = "[W]orkspace", _ = "which_key_ignore" },
+	--			["<leader>t"] = { name = "[T]oggle", _ = "which_key_ignore" },
+	--			["<leader>h"] = { name = "Git [H]unk", _ = "which_key_ignore" },
+	--		})
+	--		-- visual mode
+	--		require("which-key").add({
+	--			["<leader>h"] = { "Git [H]unk" },
+	--		}, { mode = "v" })
+	--	end,
+	--},
 
 	-- NOTE: Plugins can specify dependencies.
 	--
@@ -420,16 +500,31 @@ require("lazy").setup({
 
 			-- [[ Configure Telescope ]]
 			-- See `:help telescope` and `:help telescope.setup()`
+
 			require("telescope").setup({
 				-- You can put your default mappings / updates / etc. in here
 				--  All the info you're looking for is in `:help telescope.setup()`
 				--
-				-- defaults = {
-				--   mappings = {
-				--     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
-				--   },
-				-- },
+
+				defaults = {
+					--mappings = {
+					--  i = { ['<c-enter>'] = 'to_fuzzy_refine' },
+					--},
+					path_display = {
+						"truncate",
+					},
+					layout_strategy = "vertical",
+					--path_display = path_display,
+				},
 				-- pickers = {}
+				pickers = {
+					lsp_references = {
+						fname_width = 100,
+					},
+					lsp_definitions = {
+						fname_width = 100,
+					},
+				},
 				extensions = {
 					["ui-select"] = {
 						require("telescope.themes").get_dropdown(),
@@ -514,7 +609,7 @@ require("lazy").setup({
 				-- Disable "format_on_save lsp_fallback" for languages that don't
 				-- have a well standardized coding style. You can add additional
 				-- languages here or re-enable it for the disabled ones.
-				local disable_filetypes = { c = true, cpp = true, java = true }
+				local disable_filetypes = { c = true, cpp = true, java = true, php = true }
 				return {
 					timeout_ms = 500,
 					lsp_fallback = not disable_filetypes[vim.bo[bufnr].filetype],
@@ -641,7 +736,7 @@ require("lazy").setup({
 					{ name = "path" },
 				},
 			})
-			cmp.setup.filetype({ "sql", "plsql" }, {
+			cmp.setup.filetype({ "sql", "plsql", "mysql" }, {
 				sources = {
 					{ name = "vim-dadbod-completion" },
 					{ name = "buffer" },
@@ -848,6 +943,31 @@ require("lazy").setup({
 				-- But for many setups, the LSP (`tsserver`) will work just fine
 				-- tsserver = {},
 				--
+				intelephense = {
+					--					init_options = {
+					--						clearCache = true,
+					--					},
+					settings = {
+						intelephense = {
+							--							files = {
+							--								maxSize = 100000000,
+							--							},
+							environment = {
+								phpVersion = "8.2.0",
+							},
+						},
+						-- See https://github.com/bmewburn/intelephense-docs
+					},
+				},
+				--	phpactor = {
+				--		init_options = {
+				--			["language_server.diagnostics_on_update"] = false,
+				--			["language_server.diagnostics_on_open"] = false,
+				--			["language_server.diagnostics_on_save"] = false,
+				--			["language_server_phpstan.enabled"] = false,
+				--			["language_server_psalm.enabled"] = false,
+				--		},
+				--	},
 
 				lua_ls = {
 					-- cmd = {...},
@@ -934,12 +1054,15 @@ require("lazy").setup({
 			-- Your DBUI configuration
 			vim.g.db_ui_use_nerd_fonts = 1
 			vim.g.db_ui_debug = 1
+			vim.g.db_ui_execute_on_save = 0
+			vim.g.db_ui_save_location = "~/Projects/db"
+			vim.g.db_ui_notification_width = 100
 			--vim.g.db_ui_auto_execute_table_helpers = 1
 			--end,
-			--config = function()
-			--vim.keymap.set('n', '<leader>df', function()
-			--  require('tpope/vim-dadbod').op_exec()
-			--end, { desc = '[/] Fuzzily search in current buffer' })
+			--onfig = function()
+			--vim.keymap.set("v", "<leader>a", function()
+			--	require("tpope/vim-dadbod").op_exec()
+			--end)
 		end,
 	},
 	{
@@ -1016,7 +1139,7 @@ require("lazy").setup({
 		"nvim-treesitter/nvim-treesitter",
 		build = ":TSUpdate",
 		opts = {
-			ensure_installed = { "bash", "c", "diff", "html", "lua", "luadoc", "markdown", "vim", "vimdoc" },
+			ensure_installed = { "hurl", "bash", "c", "diff", "html", "lua", "luadoc", "markdown", "vim", "vimdoc" },
 			-- Autoinstall languages that are not installed
 			auto_install = true,
 			highlight = {
@@ -1069,6 +1192,5 @@ require("lazy").setup({
 	--    For additional information, see `:help lazy.nvim-lazy.nvim-structuring-your-plugins`
 	-- { import = 'custom.plugins' },
 })
-
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
